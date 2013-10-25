@@ -17,7 +17,6 @@ class ChessboardPositionBroadcast():
         self.base = "/base_link"
 
     def pose_callback(self, data):
-        print 'received next pose'
         self.base = data.header.frame_id
         self.translation = (
             data.pose.position.x, data.pose.position.y, data.pose.position.z)
