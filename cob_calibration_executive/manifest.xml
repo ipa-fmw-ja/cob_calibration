@@ -25,6 +25,7 @@
   <depend package='cob_robot_calibration_est'/>
   
   <depend package='cob_calibration_srvs'/>
+  <depend package='cob_moveit_interface'/>
   <depend package='urdf_parser_py'/>
 
 

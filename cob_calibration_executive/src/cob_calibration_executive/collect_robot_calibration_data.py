@@ -67,6 +67,7 @@ from cob_calibration_msgs.msg import Progress
 import yaml
 import tf
 from cob_srvs.srv import SetJointStiffnessRequest, SetJointStiffness
+import simple_moveit_interface as smi
 
 
 def capture_loop(positions, sss, visible, capture_kinematics, capture_image):
@@ -87,28 +88,16 @@ def capture_loop(positions, sss, visible, capture_kinematics, capture_image):
 
         print "--> moving arm to sample #%s" % index
         pos = positions[index]
-        #joint_pos = [[((a + (np.pi)) % (2 * np.pi)) - (np.pi)
-                      #for a in positions[index]['joint_position']]]
-        joint_pos = [[a for a in positions[index]['joint_position']]]
-        print pos
-        nh = sss.move("arm", joint_pos)
-        while nh.get_state() == 0:
-            rospy.sleep(0.2)
-        if nh.get_state() != 3:
-            sss.move("torso", "home")
-            nh = sss.move("arm", joint_pos)
-            rospy.sleep(1)
-            if nh.get_state() != 3:
-                continue
+        for (groupname, jointstate) in pos.iteritems():
+            print groupname, jointstate
+            smi.moveit_joint_goal(groupname, jointstate)
 
-        print nh.get_state()
         br.sendTransform((0, 0, 0.24),
                          (0, 0, 0, 1),
                          rospy.Time.now(),
                          "/chessboard_center",
                          "/sdh_palm_link")  # right upper corner
 
-        sss.move("torso", [positions[index]['torso_position']])
         sss.sleep(1)
 
         visible_response = visible()
@@ -137,7 +126,7 @@ def main():
 
 
 
-    rospy.sleep(4)
+    rospy.sleep(rospy.Duration(2))
     # service client
     checkerboard_checker_name = "/image_capture/visibility_check"
     visible = rospy.ServiceProxy(checkerboard_checker_name, Visible)
