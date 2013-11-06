@@ -1,13 +1,13 @@
 #!/usr/bin/env python
-#################################################################
-##\file
+#
+# \file
 #
 # \note
 #   Copyright (c) 2011-2012 \n
 #   Fraunhofer Institute for Manufacturing Engineering
 #   and Automation (IPA) \n\n
 #
-#################################################################
+#
 #
 # \note
 #   Project name: care-o-bot
@@ -23,7 +23,7 @@
 #
 # \date Date of creation: January 2012
 #
-#################################################################
+#
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -52,7 +52,7 @@
 # License LGPL along with this program.
 # If not, see <http://www.gnu.org/licenses/>.
 #
-#################################################################
+#
 PKG = 'cob_calibration_executive'
 NODE = 'collect_robot_calibration_data_node'
 import roslib
@@ -60,41 +60,21 @@ roslib.load_manifest(PKG)
 import rospy
 
 
-from kinematics_msgs.srv import GetPositionIK, GetPositionIKRequest
 from geometry_msgs.msg import PoseStamped
-from pr2_controllers_msgs.msg import JointTrajectoryControllerState
-from moveit_msgs.msg import PositionIKRequest
-from moveit_msgs.srv import GetPositionIK as GetPositionIKMoveit
 
 import tf
 import numpy as np
 import yaml
 import os
 import math
-from cob_calibration_executive.torso_ik import TorsoIK
 
 from simple_script_server import simple_script_server
 
-from random import shuffle  #shuffle links to look at
 import simple_moveit_interface as smi
-import time
 
-#board       = Checkerboard(self.pattern_size, self.square_size)
-#checkerboard_detector=CheckerboardDetector()
-#latest_image=Image()
-class Timer(object):
-    def __init__(self, name=None):
-        self.name = name
 
-    def __enter__(self):
-        self.tstart = time.time()
-
-    def __exit__(self, type, value, traceback):
-        if self.name:
-            print '[%s]' % self.name,
-        print 'Elapsed [s]: %s' % (time.time()- self.tstart)
-
-def transformation_to_posestamped((t,q)):
+def transformation_to_posestamped(xxx_todo_changeme):
+    (t, q) = xxx_todo_changeme
     pose_stamped = PoseStamped()
     pose_stamped.header.frame_id = 'base_link'
     pose_stamped.pose.position.x = t[0]
@@ -107,17 +87,19 @@ def transformation_to_posestamped((t,q)):
     return pose_stamped
 
 
-
-
 def get_cb_pose_center(listener, base_frame):
-    return listener.lookupTransform(base_frame, '/chessboard_center', rospy.Time(0))
+    return listener.lookupTransform(base_frame, '/chessboard_center',
+                                    rospy.Time(0))
 
 
 def get_cb_pose(listener, base_frame):
-    return listener.lookupTransform(base_frame, '/chessboard_position_link', rospy.Time(0))
+    return listener.lookupTransform(base_frame, '/chessboard_position_link',
+                                    rospy.Time(0))
+
 
 def get_position(listener, tip):
     return listener.lookupTransform('/base_link', tip, rospy.Time(0))
+
 
 def main():
     rospy.init_node(NODE)
@@ -130,21 +112,21 @@ def main():
     rospy.sleep(rospy.Duration(1.0))
 
     # init
-    #print "--> initializing sss"
-    #sss = simple_script_server()
-    #sss.init("base")
-    #sss.init("torso")
-    #sss.init("head")
-    #sss.recover("base")
-    #sss.recover("torso")
-    #sss.recover("head")
+    print "--> initializing sss"
+    sss = simple_script_server()
+    sss.init("base")
+    sss.init("torso")
+    sss.init("head")
+    sss.recover("base")
+    sss.recover("torso")
+    sss.recover("head")
     camera_link = "/head_cam_reference_link"
 
     [xhead, yhead, zhead] = get_position(listener, camera_link)[0]
     print xhead, yhead, zhead
 
-    #print "--> setup care-o-bot for capture"
-    #sss.move("head", "back")
+    print "--> setup care-o-bot for capture"
+    sss.move("head", "back")
 
     calibration_seed = rospy.get_param("/script_server/arm/calibration")
 
@@ -172,9 +154,9 @@ def main():
             sample_positions[key].append(sample_positions[key][-1] + step)
 
     joint_states = []
-    #torso.get_torso_limits()
+    # torso.get_torso_limits()
 
-    cb_links = ["/chessboard_center","/chessboard_lu_corner",
+    cb_links = ["/chessboard_center", "/chessboard_lu_corner",
                 "/chessboard_ru_corner", "/chessboard_ll_corner",
                 "/chessboard_rl_corner"]
     nextPose = PoseStamped()
@@ -182,9 +164,11 @@ def main():
     for x in sample_positions['x']:
         for y in sample_positions['y']:
             for z in sample_positions['z']:
-                #for q in quaternion:
+                # for q in quaternion:
                 for cb_link in cb_links:
+
                     print "\033[1;34mNew Position\033[1;m"
+
                     nextPose.header.frame_id = '/base_link'
                     nextPose.pose.position.x = x
                     nextPose.pose.position.y = y
@@ -205,16 +189,18 @@ def main():
                     roll = 0
                     pitch = math.atan2(dz, -dx)
                     yaw = -math.atan2(dy, -dx)
+
                     '''
                     Add noise to roll pitch and yaw values of cb
                     '''
                     std_dev = 0.3
-                    roll = np.random.normal(roll,std_dev,1)[0]
-                    pitch = np.random.normal(pitch,std_dev,1)[0]
-                    yaw = np.random.normal(yaw,std_dev,1)[0]
+                    roll = np.random.normal(roll, std_dev, 1)[0]
+                    pitch = np.random.normal(pitch, std_dev, 1)[0]
+                    yaw = np.random.normal(yaw, std_dev, 1)[0]
 
-                    q=tf.transformations.quaternion_from_euler(roll, pitch, yaw)
-                    #print q
+                    q = tf.transformations.quaternion_from_euler(
+                        roll, pitch, yaw)
+                    # print q
                     nextPose.pose.orientation.x = q[0]
                     nextPose.pose.orientation.y = q[1]
                     nextPose.pose.orientation.z = q[2]
@@ -223,30 +209,34 @@ def main():
                     rospy.sleep(0.2)
                     transformation_base_cb = get_position(
                         listener, cb_link)
-                    pose_stamped = transformation_to_posestamped(transformation_base_cb)
+                    pose_stamped = transformation_to_posestamped(
+                        transformation_base_cb)
 
-
-                    #if not torso.in_range(angles):
-                        #continue
-                    #print t
-                    with Timer("Lookat IK"):
-                        torso_js = smi.moveit_ik("lookat", pose_stamped)
+                    '''
+                    Torso IK
+                    '''
+                    torso_js = smi.moveit_ik("lookat", pose_stamped)
                     if torso_js is None:
                         continue
                     print '\033[1;33mTorso solution found\033[1;m'
 
-
-                    with Timer("Arm IK"):
-                        arm_js = smi.moveit_ik("arm", pose_stamped, ik_link="sdh_palm_link", seed = calibration_seed[0])
+                    '''
+                    Arm IK
+                    '''
+                    arm_js = smi.moveit_ik(
+                        "arm", pose_stamped, ik_link="sdh_palm_link",
+                        seed=calibration_seed[0])
                     if arm_js is not None:
-                        joint_states.append({'arm': arm_js
-                                            , 'lookat': torso_js})
-                        #print joint_states[-1]
+                        joint_states.append({
+                                            'arm': arm_js, 'lookat': torso_js})
 
                         print '\033[1;32mIK solution found\033[1;m'
                     else:
                         print '\033[1;31mNo solution found\033[1;m'
+    save_positions(joint_states)
 
+
+def save_positions(joint_states):
     path = rospy.get_param('~output_path', None)
     directory = os.path.dirname(path)
 
